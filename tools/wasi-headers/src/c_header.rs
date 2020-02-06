@@ -242,23 +242,32 @@ fn print_struct(ret: &mut String, name: &Id, s: &StructDatatype) {
 }
 
 fn print_union(ret: &mut String, name: &Id, u: &UnionDatatype) {
-    ret.push_str(&format!("typedef union __wasi_{}_t {{\n", ident_name(name)));
+    ret.push_str(&format!(
+        "typedef struct __wasi_{}_t {{\n",
+        ident_name(name)
+    ));
+
+    ret.push_str(&format!("    {} tag;\n", typeref_name(&u.tag)));
+    ret.push_str("    union {\n");
 
     for variant in &u.variants {
-        if !variant.docs.is_empty() {
-            ret.push_str("    /**\n");
-            for line in variant.docs.lines() {
-                ret.push_str(&format!("     * {}\n", line));
+        if let Some(ref tref) = variant.tref {
+            if !variant.docs.is_empty() {
+                ret.push_str("        /**\n");
+                for line in variant.docs.lines() {
+                    ret.push_str(&format!("        * {}\n", line));
+                }
+                ret.push_str("         */\n");
             }
-            ret.push_str("     */\n");
+            ret.push_str(&format!(
+                "        {} {};\n",
+                typeref_name(tref),
+                ident_name(&variant.name)
+            ));
+            ret.push_str("\n");
         }
-        ret.push_str(&format!(
-            "    {} {};\n",
-            typeref_name(&variant.tref),
-            ident_name(&variant.name)
-        ));
-        ret.push_str("\n");
     }
+    ret.push_str("    } u;\n");
 
     ret.push_str(&format!("}} __wasi_{}_t;\n", ident_name(name)));
     ret.push_str("\n");
